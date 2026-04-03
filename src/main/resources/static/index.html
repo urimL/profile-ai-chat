@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>이유림 AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Segoe UI', sans-serif;
+      background: #f0f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 80px 20px 60px;
+    }
+
+    .content {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #1f1f1f;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #9ca3af;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    /* 검색창 */
+    .search-wrap {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1.5px solid #cfe0ec;
+      border-radius: 14px;
+      padding: 6px 6px 6px 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(100,160,200,0.07);
+    }
+    .search-wrap:focus-within {
+      border-color: #8bb8d4;
+      box-shadow: 0 0 0 3px rgba(100,160,200,0.13);
+    }
+    .search-icon { color: #aac6d8; flex-shrink: 0; display: flex; }
+    .search-box {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 15px;
+      font-family: inherit;
+      color: #2c3e50;
+      background: transparent;
+    }
+    .search-box::placeholder { color: #b0c8d8; }
+    .search-btn {
+      background: #5a8fa8;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 11px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .search-btn:hover { background: #4a7d94; }
+    .search-btn:active { transform: scale(0.97); }
+    .search-btn:disabled { background: #a8c4d0; cursor: not-allowed; transform: none; }
+
+    /* 칩 */
+    .chips {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+      justify-content: center;
+    }
+    .chip {
+      background: #fff;
+      border: 1px solid #cfe0ec;
+      border-radius: 99px;
+      padding: 6px 15px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #6e8fa0;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .chip:hover { border-color: #8bb8d4; color: #4a7d94; background: #eef6fb; }
+
+    /* 답변 */
+    .answer-wrap {
+      width: 100%;
+      margin-top: 40px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+    }
+    .answer-wrap.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .question-echo {
+      font-size: 13px;
+      color: #94b4c4;
+      margin-bottom: 12px;
+      padding-left: 12px;
+      border-left: 2px solid #b8d8e8;
+    }
+    .question-echo strong { color: #6e8fa0; font-weight: 500; }
+
+    .answer-card {
+      background: #fff;
+      border: 1px solid #cfe0ec;
+      border-radius: 16px;
+      padding: 24px 26px;
+      box-shadow: 0 2px 10px rgba(100,160,200,0.07);
+    }
+
+    .answer-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #eaf3f8;
+    }
+    .ai-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      background: #deeef6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+    .ai-name { font-size: 13px; font-weight: 600; color: #7aa8be; }
+
+    .answer-text {
+      font-size: 15px;
+      line-height: 1.8;
+      color: #374151;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .answer-text.error { color: #b0495a; }
+
+    /* 로딩 */
+    .dots { display: flex; gap: 5px; align-items: center; height: 22px; }
+    .dots span {
+      width: 6px; height: 6px;
+      background: #a8ccd8;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+    .dots span:nth-child(2) { animation-delay: 0.18s; }
+    .dots span:nth-child(3) { animation-delay: 0.36s; }
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+  </style>
+</head>
+<body>
+<div class="content">
+
+  <h1 class="title">이유림 개발자 AI</h1>
+  <p class="subtitle">Ask about me!</p>
+
+  <div class="search-wrap">
+    <span class="search-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    </span>
+    <input class="search-box" id="query" type="text" placeholder="어떤 프로젝트를 하셨나요?" maxlength="300" />
+    <button class="search-btn" id="ask-btn">질문하기</button>
+  </div>
+
+  <div class="chips">
+    <button class="chip" onclick="ask(this.textContent)">기술 스택이 뭔가요?</button>
+    <button class="chip" onclick="ask(this.textContent)">주요 프로젝트가 뭔가요?</button>
+    <button class="chip" onclick="ask(this.textContent)">어떤 개발자인가요?</button>
+    <button class="chip" onclick="ask(this.textContent)">백엔드 경험이 있나요?</button>
+  </div>
+
+  <div class="answer-wrap" id="answer-wrap">
+    <div class="question-echo" id="question-echo"></div>
+    <div class="answer-card">
+      <div class="answer-header">
+        <div class="ai-avatar">✦</div>
+        <span class="ai-name">Answer</span>
+      </div>
+      <div class="answer-text" id="answer-text"></div>
+    </div>
+  </div>
+
+</div>
+<script>
+  const queryEl = document.getElementById('query');
+  const askBtn = document.getElementById('ask-btn');
+  const answerWrap = document.getElementById('answer-wrap');
+  const answerText = document.getElementById('answer-text');
+  const questionEcho = document.getElementById('question-echo');
+
+  async function ask(question) {
+    question = (question ?? queryEl.value).trim();
+    if (!question) return;
+
+    queryEl.value = question;
+    askBtn.disabled = true;
+
+    questionEcho.innerHTML = `<strong>"${question}"</strong>`;
+    answerText.className = 'answer-text';
+    answerText.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+    answerWrap.classList.add('visible');
+
+    try {
+      const res = await fetch('/api/v1/profile/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      if (!res.ok) throw new Error('서버 오류 ' + res.status);
+      const data = await res.json();
+      answerText.className = 'answer-text';
+      answerText.textContent = data.answer;
+    } catch (e) {
+      answerText.className = 'answer-text error';
+      answerText.textContent = '오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+    } finally {
+      askBtn.disabled = false;
+    }
+  }
+
+  askBtn.addEventListener('click', () => ask());
+  queryEl.addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
+</script>
+</body>
+</html>

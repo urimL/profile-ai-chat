@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile Chat Widget</title>
+  <style>
+    /* ===== 플로팅 버튼 ===== */
+    #chat-fab {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #4f46e5;
+      color: #fff;
+      font-size: 24px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(79,70,229,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: background 0.2s, transform 0.2s;
+    }
+    #chat-fab:hover { background: #4338ca; transform: scale(1.08); }
+
+    /* ===== 채팅 모달 ===== */
+    #chat-modal {
+      display: none;
+      position: fixed;
+      bottom: 96px;
+      right: 28px;
+      width: 340px;
+      max-height: 500px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      z-index: 9998;
+      flex-direction: column;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    #chat-modal.open { display: flex; }
+
+    /* 헤더 */
+    #chat-header {
+      background: #4f46e5;
+      color: #fff;
+      padding: 14px 16px;
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #chat-close {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    /* 메시지 목록 */
+    #chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 240px;
+    }
+    .msg {
+      max-width: 85%;
+      padding: 10px 13px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: #4f46e5;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: #f3f4f6;
+      color: #111;
+      border-bottom-left-radius: 4px;
+    }
+    .msg.typing { color: #9ca3af; font-style: italic; }
+
+    /* 입력창 */
+    #chat-input-area {
+      display: flex;
+      border-top: 1px solid #e5e7eb;
+      padding: 10px 12px;
+      gap: 8px;
+    }
+    #chat-input {
+      flex: 1;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 14px;
+      outline: none;
+      resize: none;
+    }
+    #chat-input:focus { border-color: #4f46e5; }
+    #chat-send {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 14px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: background 0.2s;
+    }
+    #chat-send:hover { background: #4338ca; }
+    #chat-send:disabled { background: #a5b4fc; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<!-- 플로팅 버튼 -->
+<button id="chat-fab" title="Ask about Yu Rim">💬</button>
+
+<!-- 채팅 모달 -->
+<div id="chat-modal">
+  <div id="chat-header">
+    <span>✨ Ask about Yu Rim</span>
+    <button id="chat-close">×</button>
+  </div>
+  <div id="chat-messages">
+    <div class="msg bot">안녕하세요! 이유림 개발자에 대해 궁금한 점을 질문해 보세요 😊</div>
+  </div>
+  <div id="chat-input-area">
+    <input id="chat-input" type="text" placeholder="어떤 프로젝트를 하셨나요?" maxlength="200" />
+    <button id="chat-send">➤</button>
+  </div>
+</div>
+
+<script>
+  const API_URL = 'http://localhost:8080/api/v1/profile/chat';
+
+  const fab = document.getElementById('chat-fab');
+  const modal = document.getElementById('chat-modal');
+  const closeBtn = document.getElementById('chat-close');
+  const messages = document.getElementById('chat-messages');
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send');
+
+  // 모달 토글
+  fab.addEventListener('click', () => modal.classList.toggle('open'));
+  closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+
+  // 메시지 추가
+  function addMessage(text, role) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  // 질문 전송
+  async function sendQuestion() {
+    const question = input.value.trim();
+    if (!question) return;
+
+    input.value = '';
+    sendBtn.disabled = true;
+    addMessage(question, 'user');
+
+    const typingEl = addMessage('답변을 생성 중입니다...', 'bot typing');
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+
+      if (!res.ok) throw new Error('서버 오류: ' + res.status);
+      const data = await res.json();
+      typingEl.remove();
+      addMessage(data.answer, 'bot');
+    } catch (err) {
+      typingEl.remove();
+      addMessage('오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', 'bot');
+      console.error(err);
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+
+  sendBtn.addEventListener('click', sendQuestion);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); }
+  });
+</script>
+
+</body>
+</html>
